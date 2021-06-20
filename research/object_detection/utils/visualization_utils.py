@@ -1181,6 +1181,16 @@ def visualize_boxes_and_labels_on_image_array(
   box_to_keypoints_map = collections.defaultdict(list)
   box_to_keypoint_scores_map = collections.defaultdict(list)
   box_to_track_ids_map = {}
+
+  # Create new variable for calculating mask area
+  mask_area = []
+  total_plate_area = 0
+  total_rust_area = 0
+  rust_percent = 0
+
+  # Create new class list
+  class_list = []
+
   if not max_boxes_to_draw:
     max_boxes_to_draw = boxes.shape[0]
   for i in range(boxes.shape[0]):
@@ -1190,6 +1200,10 @@ def visualize_boxes_and_labels_on_image_array(
       box = tuple(boxes[i].tolist())
       if instance_masks is not None:
         box_to_instance_masks_map[box] = instance_masks[i]
+
+        # append mask area to mask_area list
+        mask_area.append(instance_masks[i].sum())
+
       if instance_boundaries is not None:
         box_to_instance_boundaries_map[box] = instance_boundaries[i]
       if keypoints is not None:
@@ -1209,6 +1223,10 @@ def visualize_boxes_and_labels_on_image_array(
             else:
               class_name = 'N/A'
             display_str = str(class_name)
+
+            # Append class name to new created class_name list
+            class_list.append(str(class_name))
+
         if not skip_scores:
           if not display_str:
             display_str = '{}%'.format(round(100*scores[i]))
@@ -1229,6 +1247,21 @@ def visualize_boxes_and_labels_on_image_array(
         else:
           box_to_color_map[box] = STANDARD_COLORS[
               classes[i] % len(STANDARD_COLORS)]
+
+  # Additional part to calculate rust percentage
+  if instance_masks is not None:
+    for m in range(len(box_to_color_map)):
+      if class_list[m] == "plate":
+        total_plate_area += mask_area[m]
+      elif class_list[m] == "rust":
+        total_rust_area += mask_area[m]
+    if total_plate_area != 0:
+      rust_percent = (total_rust_area/(total_plate_area-total_rust_area))*100
+      rust_ret = True
+    else:
+      rust_ret = False
+  else:
+    rust_ret = False
 
   # Draw all boxes onto image.
   for box, color in box_to_color_map.items():
@@ -1273,7 +1306,7 @@ def visualize_boxes_and_labels_on_image_array(
           keypoint_edge_color=color,
           keypoint_edge_width=line_thickness // 2)
 
-  return image
+  return image, rust_ret, rust_percent
 
 
 def add_cdf_image_summary(values, name):

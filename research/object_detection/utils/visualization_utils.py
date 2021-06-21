@@ -1256,7 +1256,7 @@ def visualize_boxes_and_labels_on_image_array(
       elif class_list[m] == "rust":
         total_rust_area += mask_area[m]
     if total_plate_area != 0:
-      rust_percent = (total_rust_area/(total_plate_area-total_rust_area))*100
+      rust_percent = (total_rust_area/total_plate_area)*100
       rust_ret = True
     else:
       rust_ret = False
